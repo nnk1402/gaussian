@@ -1,0 +1,200 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Khử Gauss - Chủ đề Anime</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1618005182380-4f5d6f1f8d9b');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .anime-character {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+        }
+        .matrix-input {
+            display: grid;
+            gap: 5px;
+            margin: 20px 0;
+        }
+        .matrix-cell {
+            width: 60px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #result {
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center text-pink-600 mb-6">Ứng dụng Khử Gauss - Chủ đề Anime</h1>
+        <div class="mb-4">
+            <label for="matrix-size" class="block text-lg font-semibold text-purple-700">Kích thước ma trận (n x n):</label>
+            <input type="number" id="matrix-size" min="1" max="10" value="3" class="mt-2 p-2 border rounded w-full max-w-xs">
+            <button onclick="generateMatrix()" class="mt-2 bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">Tạo ma trận</button>
+        </div>
+        <div id="matrix-container" class="matrix-input"></div>
+        <button onclick="solveGauss()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Giải bằng phép khử Gauss</button>
+        <div id="result" class="mt-4"></div>
+    </div>
+    <img src="anime-girl.png" alt="Anime Character" class="anime-character">
+    <script>
+        function generateMatrix() {
+            const size = parseInt(document.getElementById('matrix-size').value);
+            if (size < 1 || size > 10) {
+                alert('Kích thước ma trận phải từ 1 đến 10!');
+                return;
+            }
+            const container = document.getElementById('matrix-container');
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${size + 1}, minmax(0, 1fr))`;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j <= size; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'matrix-cell';
+                    input.id = `cell-${i}-${j}`;
+                    input.value = 0;
+                    container.appendChild(input);
+                }
+            }
+        }
+
+        function getMatrix() {
+            const size = parseInt(document.getElementById('matrix-size').value);
+            const matrix = [];
+            for (let i = 0; i < size; i++) {
+                const row = [];
+                for (let j = 0; j <= size; j++) {
+                    row.push(parseFloat(document.getElementById(`cell-${i}-${j}`).value) || 0);
+                }
+                matrix.push(row);
+            }
+            return matrix;
+        }
+
+        function gaussElimination(matrix) {
+            const n = matrix.length;
+            let steps = ['Ma trận ban đầu:\n' + matrixToString(matrix)];
+
+            for (let i = 0; i < n; i++) {
+                let maxElement = Math.abs(matrix[i][i]);
+                let maxRow = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(matrix[k][i]) > maxElement) {
+                        maxElement = Math.abs(matrix[k][i]);
+                        maxRow = k;
+                    }
+                }
+
+                if (maxElement === 0) {
+                    return 'Hệ phương trình vô nghiệm hoặc có vô số nghiệm!';
+                }
+
+                if (maxRow !== i) {
+                    [matrix[i], matrix[maxRow]] = [matrix[maxRow], matrix[i]];
+                    steps.push(`Hoán đổi hàng ${i + 1} và hàng ${maxRow + 1}:\n` + matrixToString(matrix));
+                }
+
+                for (let k = i + 1; k < n; k++) {
+                    const factor = matrix[k][i] / matrix[i][i];
+                    for (let j = i; j <= n; j++) {
+                        matrix[k][j] -= factor * matrix[i][j];
+                    }
+                    steps.push(`Biến đổi hàng ${k + 1} bằng cách trừ ${factor.toFixed(2)} lần hàng ${i + 1}:\n` + matrixToString(matrix));
+                }
+            }
+
+            const solutions = new Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                let sum = 0;
+                for (let j = i + 1; j < n; j++) {
+                    sum += matrix[i][j] * solutions[j];
+                }
+                if (matrix[i][i] === 0) {
+                    return 'Hệ phương trình vô nghiệm hoặc có vô số nghiệm!';
+                }
+                solutions[i] = (matrix[i][n] - sum) / matrix[i][i];
+            }
+
+            steps.push('Nghiệm của hệ phương trình:\n' + solutions.map((x, i) => `x${i + 1} = ${x.toFixed(2)}`).join('\n'));
+            return steps.join('\n\n');
+        }
+
+        function matrixToString(matrix) {
+            return matrix.map(row => row.map(x => x.toFixed(2).padStart(8)).join('')).join('\n');
+        }
+
+        function solveGauss() {
+            const matrix = getMatrix();
+            const result = gaussElimination(matrix);
+            document.getElementById('result').textContent = result;
+        }
+
+        // Tạo ma trận mặc định khi tải trang
+        generateMatrix();
+    </script>
+</body>
+</html>
